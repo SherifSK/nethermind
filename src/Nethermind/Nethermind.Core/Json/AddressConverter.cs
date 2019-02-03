@@ -31,7 +31,7 @@ namespace Nethermind.Core.Json
         public override Address ReadJson(JsonReader reader, Type objectType, Address existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
         {
             string s = (string)reader.Value;
-            return new Address(s);
+            return s == null ? null : new Address(s);
         }
     }
 }

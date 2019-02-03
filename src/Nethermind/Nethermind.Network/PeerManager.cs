@@ -61,13 +61,13 @@ namespace Nethermind.Network
         private System.Timers.Timer _pingTimer;
         private int _logCounter = 1;
         private bool _isStarted;
-        private bool _isPeerUpdateInProgress;
-        private readonly object _isPeerUpdateInProgressLock = new object();
         private readonly IPerfService _perfService;
         private readonly ITransactionPool _transactionPool;
         private bool _isDiscoveryEnabled;
         private Task _storageCommitTask;
         private long _prevActivePeersCount;
+        private readonly ManualResetEventSlim _peerUpdateRequested = new ManualResetEventSlim(false);
+        private Task _peerUpdateLoopTask;
 
         private readonly ConcurrentDictionary<NodeId, Peer> _activePeers = new ConcurrentDictionary<NodeId, Peer>();
         private readonly ConcurrentDictionary<NodeId, Peer> _candidatePeers = new ConcurrentDictionary<NodeId, Peer>();
@@ -96,6 +96,7 @@ namespace Nethermind.Network
             _transactionPool = transactionPool ?? throw new ArgumentNullException(nameof(transactionPool));
             _nodeFactory = nodeFactory ?? throw new ArgumentNullException(nameof(nodeFactory));
             _peerStorage = peerStorage ?? throw new ArgumentNullException(nameof(peerStorage));
+            _peerSessionLogger = peerSessionLogger ?? throw new ArgumentNullException(nameof(peerSessionLogger));
             _peerSessionLogger = peerSessionLogger ?? throw new ArgumentNullException(nameof(peerSessionLogger));
             _peerStorage.StartBatch();
 
@@ -144,7 +145,7 @@ namespace Nethermind.Network
             };
         }
 
-        public async Task Start()
+        public void Start()
         {
             // timer is needed to support reconnecting, event based connection is also supported
             if (_networkConfig.IsActivePeerTimerEnabled)
@@ -155,8 +156,27 @@ namespace Nethermind.Network
             StartPeerPersistenceTimer();
             StartPingTimer();
 
+            _peerUpdateLoopTask = Task.Factory.StartNew(
+                RunPeerUpdateLoop,
+                _cancellationTokenSource.Token,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default).ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                {
+                    if (_logger.IsError) _logger.Error("Peer update loop encountered an exception.", t.Exception);
+                }
+                else if (t.IsCanceled)
+                {
+                    if (_logger.IsDebug) _logger.Debug("Peer update loop stopped.");
+                }
+                else if (t.IsCompleted)
+                {
+                    if (_logger.IsDebug) _logger.Debug("Peer update loop complete.");
+                }
+            });
+            
             _isStarted = true;
-            await RunPeerUpdate(); // initial peer update
         }
 
         public async Task StopAsync(ExitType exitType)
@@ -200,42 +220,36 @@ namespace Nethermind.Network
             _peerSessionLogger.LogSessionStats(ActivePeers, CandidatePeers, logEventDetails);
         }
 
-        public async Task RunPeerUpdate()
+        public void RunPeerUpdate()
         {
-            await Task.Run(() => RunPeerUpdateSync()).ContinueWith(x =>
-            {
-                if (x.IsFaulted)
-                {
-                    if (_logger.IsError) _logger.Error("Error during Peer update", x.Exception);
-                }
-            });
+            _peerUpdateRequested.Set();
         }
         
-        private void RunPeerUpdateSync()
+        private async Task RunPeerUpdateLoop()
         {
-            try
+            while(true)
             {
-                lock (_isPeerUpdateInProgressLock)
+                try
                 {
-                    if (_isPeerUpdateInProgress)
-                    {
-                        return;
-                    }
-
-                    _isPeerUpdateInProgress = true;
+                    CleanupCandidatePeers();
                 }
-
-                //_logger.Info($"TESTTEST All active peers: {_activePeers.Count}, can: {_candidatePeers.Count}, peers: IN: {_activePeers.Values.Count(x => x.ConnectionDirection == ConnectionDirection.In)}, OUT: {_activePeers.Values.Count(x => x.ConnectionDirection == ConnectionDirection.Out)}");
+                catch (Exception e)
+                {
+                    if (_logger.IsDebug) _logger.Error("Candidate peers clanup failed", e);
+                }
+                
+                _peerUpdateRequested.Wait(_cancellationTokenSource.Token);
+                _peerUpdateRequested.Reset();
 
                 int availableActiveCount = _networkConfig.ActivePeersMaxCount - _activePeers.Count;
                 if (availableActiveCount == 0)
                 {
-                    return;
+                    continue;
                 }
 
                 if (_cancellationTokenSource.IsCancellationRequested)
                 {
-                    return;
+                    break;
                 }
 
                 int tryCount = 0;
@@ -247,7 +261,7 @@ namespace Nethermind.Network
                 IReadOnlyCollection<Peer> remainingCandidates = candidateSelection.Candidates;
                 if (!remainingCandidates.Any())
                 {
-                    return;
+                    continue;
                 }
 
                 while (true)
@@ -328,16 +342,14 @@ namespace Nethermind.Network
                     if (_logCounter % 5 == 0)
                     {
                         string nl = Environment.NewLine;
-                        _logger.Trace($"{nl}{nl}All active peers: {nl}{string.Join(nl, ActivePeers.Select(x => $"{x.Node.ToString()} | P2PInitialized: {x.NodeStats.DidEventHappen(NodeStatsEventType.P2PInitialized)} | Eth62Initialized: {x.NodeStats.DidEventHappen(NodeStatsEventType.Eth62Initialized)} | ClientId: {x.NodeStats.P2PNodeDetails?.ClientId}"))} {nl}{nl}");
+                        _logger.Trace($"{nl}{nl}All active peers: {nl}{string.Join(nl, _activePeers.Values.Select(x => $"{x.Node.ToString()} | P2PInitialized: {x.NodeStats.DidEventHappen(NodeStatsEventType.P2PInitialized)} | Eth62Initialized: {x.NodeStats.DidEventHappen(NodeStatsEventType.Eth62Initialized)} | ClientId: {x.NodeStats.P2PNodeDetails?.ClientId}"))} {nl}{nl}");
                     }
 
                     _logCounter++;
                 }
             }
-            finally
-            {
-                _isPeerUpdateInProgress = false;
-            }
+            
+            await Task.CompletedTask;
         }
 
         private bool AddActivePeer(NodeId nodeId, Peer peer, string reason)
@@ -838,8 +850,7 @@ namespace Nethermind.Network
 
                 if (_isStarted)
                 {
-                    //Fire and forget
-                    Task.Run(() => RunPeerUpdateSync());
+                    _peerUpdateRequested.Set();
                 }
             }
         }
@@ -933,11 +944,10 @@ namespace Nethermind.Network
 
             if (_isStarted)
             {
-                //Fire and forget
-                Task.Run(RunPeerUpdate);
+                _peerUpdateRequested.Set();
             }
         }
-
+        
         private void StartActivePeersTimer()
         {
             if (_logger.IsDebug) _logger.Debug("Starting active peers timer");
@@ -947,8 +957,7 @@ namespace Nethermind.Network
                 try
                 {
                     _activePeersTimer.Enabled = false;
-                    RunPeerUpdateSync();
-                    CleanupCandidatePeers();
+                    _peerUpdateRequested.Set();
                 }
                 catch (Exception exception)
                 {
@@ -1168,6 +1177,7 @@ namespace Nethermind.Network
                 }
                 if (_logger.IsDebug) _logger.Debug($"Removing candidate peers: {nodesToRemove.Length}, failedValidationRemovedCount: {failedValidationRemovedCount}, otherRemovedCount: {remainingCount}, prevCount: {candidates.Length}, newCount: {_candidatePeers.Count}, CandidatePeerCountCleanupThreshold: {_networkConfig.CandidatePeerCountCleanupThreshold}, MaxCandidatePeerCount: {_networkConfig.MaxCandidatePeerCount}");
             }
+            
             //_logger.Info($"candidates: \n{string.Join("\n", candidates.Select(x => $"{x.Node.Id}: {x.NodeStats.CurrentNodeReputation}"))}");
             //_logger.Info($"nodesToRemove: \n{string.Join("\n", nodesToRemove.Select(x => $"{x.Node.Id}: {x.NodeStats.CurrentNodeReputation}"))}");
         }
@@ -1187,7 +1197,7 @@ namespace Nethermind.Network
         private async Task SendPingMessagesAsync()
         {
             var pingTasks = new List<(Peer peer, Task<bool> pingTask)>();
-            foreach (var activePeer in ActivePeers)
+            foreach (var activePeer in _activePeers.Values)
             {
                 if (activePeer.P2PMessageSender != null)
                 {

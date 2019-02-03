@@ -186,11 +186,11 @@ namespace Nethermind.Blockchain
                     {
                         if (t.IsFaulted)
                         {
-                            if (_logger.IsError)
+                            if (_logger.IsDebug) // only reports this error when viewed in the Debug mode
                             {
                                 if (t.Exception != null && t.Exception.InnerExceptions.Any(x => x is TimeoutException))
                                 {
-                                    if (_logger.IsDebug) _logger.Debug($"Stopping sync with node: {currentPeerNodeId}. {t.Exception?.Message}");
+                                    _logger.Debug($"Stopping sync with node: {currentPeerNodeId}. {t.Exception?.Message}");
                                 }
                                 else
                                 {
@@ -567,7 +567,7 @@ namespace Nethermind.Blockchain
                     }
                     else if (initPeerCount == 0)
                     {
-                        if (_logger.IsInfo) _logger.Info($"Sync peers 0, searching or peers to sync with...");
+                        if (_logger.IsInfo) _logger.Info($"Sync peers 0, searching for peers to sync with...");
                     }
 
                     CheckIfSyncingWithFastestPeer();
@@ -661,12 +661,6 @@ namespace Nethermind.Blockchain
 
         private void OnNewHeadBlock(object sender, BlockEventArgs blockEventArgs)
         {
-            // this is not critical (just beneficial) not to run in parallel with sync so the race condition here is totally acceptable
-            if (_currentSyncingPeerInfo != null)
-            {
-                return;
-            }
-
             Block block = blockEventArgs.Block;
             foreach ((_, PeerInfo peerInfo) in _peers)
             {

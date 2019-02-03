@@ -25,52 +25,69 @@ namespace Nethermind.Core.Json
 {
     public class BigIntegerConverter : JsonConverter<BigInteger>
     {
-        private readonly bool _useX64;
+        private readonly NumberConversion _conversion;
 
         public BigIntegerConverter()
-            : this(false)
+            : this(NumberConversion.Hex)
         {
         }
 
-        public BigIntegerConverter(bool useX64)
+        public BigIntegerConverter(NumberConversion conversion)
         {
-            _useX64 = useX64;
+            _conversion = conversion;
         }
 
-        public override void WriteJson(JsonWriter writer, BigInteger value, Newtonsoft.Json.JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, BigInteger value, JsonSerializer serializer)
         {
             if (value.IsZero)
             {
                 writer.WriteValue("0x0");
                 return;
             }
-            
-            writer.WriteValue(string.Concat("0x", value.ToString(_useX64 ? "x64" : "x").TrimStart('0')));
+
+            switch (_conversion)
+            {
+                case NumberConversion.PaddedHex:
+                    writer.WriteValue(string.Concat("0x", value.ToString("x64").TrimStart('0')));
+                    break;
+                case NumberConversion.Hex:
+                    writer.WriteValue(string.Concat("0x", value.ToString("x").TrimStart('0')));
+                    break;
+                case NumberConversion.Decimal:
+                    writer.WriteValue(value.ToString());
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public override BigInteger ReadJson(JsonReader reader, Type objectType, BigInteger existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
         {
             if (reader.Value is long || reader.Value is int)
             {
-                return (long)reader.Value;
+                return (long) reader.Value;
             }
-            
+
             string s = (string) reader.Value;
             if (s == "0x0")
             {
                 return BigInteger.Zero;
             }
-            
+
             if (s.StartsWith("0x0"))
             {
-                return BigInteger.Parse(s.AsSpan(2), NumberStyles.AllowHexSpecifier);    
+                return BigInteger.Parse(s.AsSpan(2), NumberStyles.AllowHexSpecifier);
             }
-            
-            Span<char> withZero = new Span<char>(new char[s.Length - 1]);
-            withZero[0] = '0';
-            s.AsSpan(2).CopyTo(withZero.Slice(1));
-            
-            return BigInteger.Parse(withZero, NumberStyles.AllowHexSpecifier);
+
+            if (s.StartsWith("0x"))
+            {
+                Span<char> withZero = new Span<char>(new char[s.Length - 1]);
+                withZero[0] = '0';
+                s.AsSpan(2).CopyTo(withZero.Slice(1));
+                return BigInteger.Parse(withZero, NumberStyles.AllowHexSpecifier);
+            }
+
+            return BigInteger.Parse(s, NumberStyles.Integer);
         }
     }
 }

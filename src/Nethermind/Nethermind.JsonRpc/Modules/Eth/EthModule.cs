@@ -31,6 +31,7 @@ using Nethermind.Core.Extensions;
 using Nethermind.Core.Logging;
 using Nethermind.Core.Model;
 using Nethermind.Dirichlet.Numerics;
+using Nethermind.Facade;
 using Nethermind.JsonRpc.Data;
 
 namespace Nethermind.JsonRpc.Modules.Eth
@@ -39,13 +40,11 @@ namespace Nethermind.JsonRpc.Modules.Eth
     {
         private Encoding _messageEncoding = Encoding.UTF8;
 
-        private const string SignatureTemplate = "\x19Ethereum Signed Message:\n{0}{1}";
-
         private readonly IBlockchainBridge _blockchainBridge;
 
         private ReaderWriterLockSlim _readerWriterLockSlim = new ReaderWriterLockSlim();
 
-        public EthModule(IJsonSerializer jsonSerializer, IConfigProvider configurationProvider, ILogManager logManager, IBlockchainBridge blockchainBridge) : base(configurationProvider, logManager, jsonSerializer)
+        public EthModule(IJsonSerializer jsonSerializer, IConfigProvider configProvider, ILogManager logManager, IBlockchainBridge blockchainBridge) : base(configProvider, logManager, jsonSerializer)
         {
             _blockchainBridge = blockchainBridge;
         }
@@ -347,9 +346,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 try
                 {
                     Address address = addressData;
-                    var messageText = _messageEncoding.GetString(message);
-                    var signatureText = string.Format(SignatureTemplate, messageText.Length, messageText);
-                    sig = _blockchainBridge.Sign(address, Keccak.Compute(signatureText));
+                    sig = _blockchainBridge.Sign(address, message);
                 }
                 catch (Exception)
                 {
@@ -371,6 +368,12 @@ namespace Nethermind.JsonRpc.Modules.Eth
             {
                 _readerWriterLockSlim.EnterWriteLock();
                 Transaction tx = transactionForRpc.ToTransaction();
+                if (tx.Signature == null)
+                {
+                    tx.Nonce = (UInt256)_blockchainBridge.GetNonce(tx.SenderAddress);
+                    _blockchainBridge.Sign(tx);
+                }
+                
                 Keccak txHash = _blockchainBridge.SendTransaction(tx);
                 return ResultWrapper<Keccak>.Success(txHash);
             }

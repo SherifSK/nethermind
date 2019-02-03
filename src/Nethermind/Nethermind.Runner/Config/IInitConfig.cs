@@ -22,6 +22,8 @@ namespace Nethermind.Runner.Config
 {
     public interface IInitConfig : IConfig
     {
+        bool EnableUnsecuredDevWallet { get; set; }
+        bool KeepDevWalletInMemory{ get; set; }
         bool JsonRpcEnabled { get; set; }
         string[] JsonRpcEnabledModules { get; set; }
         bool DiscoveryEnabled { get; set; }

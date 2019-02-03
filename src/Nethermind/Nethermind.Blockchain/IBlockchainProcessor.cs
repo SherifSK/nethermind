@@ -29,7 +29,6 @@ namespace Nethermind.Blockchain
         void Start();
         Task StopAsync(bool processRemainingBlocks = false);
         Block Process(Block block, ProcessingOptions options, IBlockTracer listener);
-        void SuggestBlock(Block block, ProcessingOptions options);
         void SuggestBlock(Keccak blockHash, ProcessingOptions options);
         event EventHandler ProcessingQueueEmpty;
     }

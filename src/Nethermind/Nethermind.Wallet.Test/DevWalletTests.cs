@@ -1,8 +1,13 @@
+using System;
+using System.IO;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
+using Nethermind.Core.Json;
 using Nethermind.Core.Logging;
 using Nethermind.Core.Specs;
 using Nethermind.Core.Test.Builders;
+using Nethermind.KeyStore;
+using Nethermind.KeyStore.Config;
 using NUnit.Framework;
 
 namespace Nethermind.Wallet.Test
@@ -10,19 +15,75 @@ namespace Nethermind.Wallet.Test
     [TestFixture]
     public class DevWalletTests
     {
-        [Test]
-        public void Has_10_dev_accounts()
+        public enum DevWalletType
         {
-            DevWallet wallet = new DevWallet(NullLogManager.Instance);
-            Assert.AreEqual(10, wallet.GetAccounts().Length);
+            KeyStore,
+            Memory
         }
 
-        [Test]
-        public void Each_account_can_sign_with_simple_key()
+        [SetUp]
+        public void SetUp()
         {
-            DevWallet wallet = new DevWallet(NullLogManager.Instance);
+            DeleteTestKeyStore();
+        }
 
-            for (int i = 1; i <= 10; i++)
+        private void DeleteTestKeyStore()
+        {
+            if (Directory.Exists(_keyStorePath))
+            {
+                Directory.Delete(_keyStorePath, true);
+            }
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            DeleteTestKeyStore();
+        }
+
+        private string _keyStorePath = Path.Combine(Path.GetTempPath(), "DevWalletTests_keystore");
+
+        private IWallet SetupWallet(DevWalletType devWalletType)
+        {
+            switch (devWalletType)
+            {
+                case DevWalletType.KeyStore:
+                    IKeyStoreConfig config = new KeyStoreConfig();
+                    config.KeyStoreDirectory = _keyStorePath;
+                    ISymmetricEncrypter encrypter = new AesEncrypter(config, LimboLogs.Instance);
+                    return new DevKeyStoreWallet(
+                        new FileKeyStore(config, new EthereumJsonSerializer(), encrypter, new CryptoRandom(), LimboLogs.Instance),
+                        LimboLogs.Instance);
+                case DevWalletType.Memory:
+                    return new DevMemoryWallet(LimboLogs.Instance);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(devWalletType), devWalletType, null);
+            }
+        }
+
+        [TestCase(DevWalletType.KeyStore)]
+        [TestCase(DevWalletType.Memory)]
+        public void Can_setup_wallet_twice(DevWalletType walletType)
+        {
+            IWallet wallet1 = SetupWallet(walletType);
+            IWallet wallet2 = SetupWallet(walletType);
+        }
+        
+        [TestCase(DevWalletType.KeyStore)]
+        [TestCase(DevWalletType.Memory)]
+        public void Has_10_dev_accounts(DevWalletType walletType)
+        {
+            IWallet wallet = SetupWallet(walletType);
+            Assert.AreEqual((walletType == DevWalletType.Memory ? 10 : 3), wallet.GetAccounts().Length);
+        }
+        
+        [TestCase(DevWalletType.KeyStore)]
+        [TestCase(DevWalletType.Memory)]
+        public void Each_account_can_sign_with_simple_key(DevWalletType walletType)
+        {
+            IWallet wallet = SetupWallet(walletType);
+
+            for (int i = 1; i <= (walletType == DevWalletType.Memory ? 10 : 3); i++)
             {
                 byte[] keyBytes = new byte[32];
                 keyBytes[31] = (byte) i;
@@ -31,29 +92,15 @@ namespace Nethermind.Wallet.Test
             }
         }
 
-        [Test]
-        public void Can_sign()
-        {
-            EthereumSigner signer = new EthereumSigner(new SingleReleaseSpecProvider(LatestRelease.Instance, 99), NullLogManager.Instance);
-            DevWallet wallet = new DevWallet(NullLogManager.Instance);
-
-            for (int i = 1; i <= 10; i++)
-            {
-                Address signerAddress = wallet.GetAccounts()[0];
-                Signature sig = wallet.Sign(signerAddress, TestObject.KeccakA);
-                Address recovered = signer.RecoverAddress(sig, TestObject.KeccakA);
-                Assert.AreEqual(signerAddress, recovered, $"{i}");
-            }
-        }
-
-        [Test]
-        public void Can_sign_on_networks_with_chain_id()
+        [TestCase(DevWalletType.KeyStore)]
+        [TestCase(DevWalletType.Memory)]
+        public void Can_sign_on_networks_with_chain_id(DevWalletType walletType)
         {
             const int networkId = 40000;
             EthereumSigner signer = new EthereumSigner(new SingleReleaseSpecProvider(LatestRelease.Instance, networkId), NullLogManager.Instance);
-            DevWallet wallet = new DevWallet(NullLogManager.Instance);
+            IWallet wallet = SetupWallet(walletType);
 
-            for (int i = 1; i <= 10; i++)
+            for (int i = 1; i <= (walletType == DevWalletType.Memory ? 10 : 3); i++)
             {
                 Address signerAddress = wallet.GetAccounts()[0];
                 Transaction tx = new Transaction();

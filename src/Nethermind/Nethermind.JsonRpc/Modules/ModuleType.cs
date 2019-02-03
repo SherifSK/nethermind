@@ -25,12 +25,13 @@ namespace Nethermind.JsonRpc.Modules
     {
         Admin,
         Clique,
-        Eth,
-        Net,
-        Web3,
         Db,
         Debug,
-        TxPool,
+        Eth,
+        Net,
+        Personal,
         Trace,
+        TxPool,
+        Web3,
     }
 }

@@ -44,11 +44,13 @@ using Nethermind.Db.Config;
 using Nethermind.Dirichlet.Numerics;
 using Nethermind.Evm;
 using Nethermind.Evm.Tracing;
+using Nethermind.Facade;
 using Nethermind.JsonRpc.Modules;
 using Nethermind.JsonRpc.Modules.Admin;
 using Nethermind.JsonRpc.Modules.DebugModule;
 using Nethermind.JsonRpc.Modules.Eth;
 using Nethermind.JsonRpc.Modules.Net;
+using Nethermind.JsonRpc.Modules.Personal;
 using Nethermind.JsonRpc.Modules.Trace;
 using Nethermind.JsonRpc.Modules.TxPool;
 using Nethermind.KeyStore;
@@ -159,6 +161,7 @@ namespace Nethermind.Runner.Runners
             {
                 await InitHive();
             }
+            
             if (_logger.IsDebug) _logger.Debug("Ethereum initialization completed");
         }
 
@@ -213,12 +216,12 @@ namespace Nethermind.Runner.Runners
             ITracer tracer = new Tracer(rpcChain.Processor, _receiptStorage, _blockTree, _dbProvider.TraceDb);
             IFilterStore filterStore = new FilterStore();
             IFilterManager filterManager = new FilterManager(filterStore, _blockProcessor, _transactionPool, _logManager);
-            _wallet = HiveEnabled ? (IWallet)new HiveWallet() : new DevWallet(_logManager);
+            
             RpcState rpcState = new RpcState(_blockTree, _specProvider, rpcDbProvider, _logManager);
 
             //creating blockchain bridge
             var blockchainBridge = new BlockchainBridge(
-                _ethereumSigner,
+                rpcState.StateReader,
                 rpcState.StateProvider,
                 rpcState.StorageProvider,
                 rpcState.BlockTree,
@@ -254,6 +257,13 @@ namespace Nethermind.Runner.Runners
             {
                 CliqueModule cliqueModule = new CliqueModule(_configProvider, _logManager, _jsonSerializer, new CliqueBridge(_blockProducer as CliqueBlockProducer, _blockTree));
                 _rpcModuleProvider.Register<ICliqueModule>(cliqueModule);
+            }
+
+            if (_initConfig.EnableUnsecuredDevWallet)
+            {
+                PersonalBridge personalBridge = new PersonalBridge(_wallet);
+                PersonalModule personalModule = new PersonalModule(personalBridge, _configProvider, _logManager, _jsonSerializer);
+                _rpcModuleProvider.Register<IPersonalModule>(personalModule);
             }
 
             AdminModule adminModule = new AdminModule(_configProvider, _logManager, _jsonSerializer);
@@ -366,6 +376,7 @@ namespace Nethermind.Runner.Runners
 
         private class RpcState
         {
+            public IStateReader StateReader;
             public IStateProvider StateProvider;
             public IStorageProvider StorageProvider;
             public IBlockhashProvider BlockhashProvider;
@@ -379,6 +390,7 @@ namespace Nethermind.Runner.Runners
                 IDb codeDb = readOnlyDbProvider.CodeDb;
                 StateTree stateTree = new StateTree(readOnlyDbProvider.StateDb);
 
+                StateReader = new StateReader(new StateTree(readOnlyDbProvider.StateDb), codeDb, logManager);
                 StateProvider = new StateProvider(stateTree, codeDb, logManager);
                 StorageProvider = new StorageProvider(stateDb, StateProvider, logManager);
 
@@ -582,6 +594,22 @@ namespace Nethermind.Runner.Runners
                 encrypter,
                 _cryptoRandom,
                 _logManager);
+            
+            switch (_initConfig)
+            {
+                case var _ when HiveEnabled:
+                    _wallet = new HiveWallet();
+                    break;
+                case var config when config.EnableUnsecuredDevWallet && config.KeepDevWalletInMemory:
+                    _wallet = new DevMemoryWallet(_logManager);
+                    break;
+                case var config when config.EnableUnsecuredDevWallet && !config.KeepDevWalletInMemory:
+                    _wallet = new DevKeyStoreWallet(_keyStore, _logManager);
+                    break;
+                default:
+                    _wallet = new NullWallet();
+                    break;
+            }
 
             if (_initConfig.IsMining)
             {
@@ -847,7 +875,7 @@ namespace Nethermind.Runner.Runners
             }
 
             if (_logger.IsDebug) _logger.Debug("Initializing peer manager");
-            await _peerManager.Start();
+            _peerManager.Start();
             if (_logger.IsDebug) _logger.Debug("Peer manager initialization completed");
         }
 
