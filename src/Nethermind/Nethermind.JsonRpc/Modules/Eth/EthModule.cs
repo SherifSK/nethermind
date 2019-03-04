@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Security;
 using System.Text;
 using System.Threading;
 using Nethermind.Blockchain.Filters;
@@ -33,6 +34,7 @@ using Nethermind.Core.Model;
 using Nethermind.Dirichlet.Numerics;
 using Nethermind.Facade;
 using Nethermind.JsonRpc.Data;
+using Newtonsoft.Json;
 
 namespace Nethermind.JsonRpc.Modules.Eth
 {
@@ -61,12 +63,21 @@ namespace Nethermind.JsonRpc.Modules.Eth
             try
             {
                 _readerWriterLockSlim.EnterReadLock();
-                var result = new SyncingResult
+                SyncingResult result;
+                if (_blockchainBridge.IsSyncing)
                 {
-                    CurrentBlock = _blockchainBridge.Head.Number,
-                    HighestBlock = _blockchainBridge.BestKnown,
-                    StartingBlock = UInt256.Zero
-                };
+                    result = new SyncingResult
+                    {
+                        CurrentBlock = _blockchainBridge.Head.Number,
+                        HighestBlock = _blockchainBridge.BestKnown,
+                        StartingBlock = UInt256.Zero,
+                        IsSyncing = true
+                    };
+                }
+                else
+                {
+                    result = SyncingResult.NotSyncing;
+                }
 
                 if (Logger.IsTrace) Logger.Trace($"eth_syncing request, result: {_blockchainBridge.Head.Number}/{_blockchainBridge.BestKnown}");
                 return ResultWrapper<SyncingResult>.Success(result);
@@ -312,6 +323,16 @@ namespace Nethermind.JsonRpc.Modules.Eth
             }
         }
 
+        private static List<JsonConverter> _converters = new List<JsonConverter>
+        {
+            new SyncingResultConverter()
+        };
+
+        public override IReadOnlyCollection<JsonConverter> GetConverters()
+        {
+            return _converters;
+        }
+
         public ResultWrapper<byte[]> eth_getCode(Address address, BlockParameter blockParameter)
         {
             try
@@ -337,6 +358,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
             }
         }
 
+
         public ResultWrapper<byte[]> eth_sign(Address addressData, byte[] message)
         {
             try
@@ -346,7 +368,10 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 try
                 {
                     Address address = addressData;
-                    sig = _blockchainBridge.Sign(address, message);
+                    string messageText = _messageEncoding.GetString(message);
+                    const string signatureTemplate = "\x19Ethereum Signed Message:\n{0}{1}";
+                    string signatureText = string.Format(signatureTemplate, messageText.Length, messageText);
+                    sig = _blockchainBridge.Sign(address, Keccak.Compute(signatureText));
                 }
                 catch (Exception)
                 {
@@ -370,10 +395,10 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 Transaction tx = transactionForRpc.ToTransaction();
                 if (tx.Signature == null)
                 {
-                    tx.Nonce = (UInt256)_blockchainBridge.GetNonce(tx.SenderAddress);
+                    tx.Nonce = (UInt256) _blockchainBridge.GetNonce(tx.SenderAddress);
                     _blockchainBridge.Sign(tx);
                 }
-                
+
                 Keccak txHash = _blockchainBridge.SendTransaction(tx);
                 return ResultWrapper<Keccak>.Success(txHash);
             }
@@ -410,7 +435,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 {
                     return ResultWrapper<byte[]>.Fail($"VM Exception while processing transaction: {result.Error}", ErrorType.ExecutionError, result.OutputData);
                 }
-                
+
                 return ResultWrapper<byte[]>.Success(result.OutputData);
             }
             finally
@@ -445,13 +470,6 @@ namespace Nethermind.JsonRpc.Modules.Eth
             {
                 _readerWriterLockSlim.EnterReadLock();
                 var block = _blockchainBridge.FindBlock(blockHash, false);
-                if (block == null)
-                {
-                    return ResultWrapper<BlockForRpc>.Fail($"Cannot find block for hash: {blockHash}", ErrorType.NotFound);
-                }
-
-
-                if (Logger.IsDebug) Logger.Debug($"eth_getBlockByHash request {blockHash}, result: {block}");
                 return ResultWrapper<BlockForRpc>.Success(new BlockForRpc(block, returnFullTransactionObjects));
             }
             finally
@@ -467,18 +485,13 @@ namespace Nethermind.JsonRpc.Modules.Eth
                 _readerWriterLockSlim.EnterReadLock();
                 if (_blockchainBridge.Head == null)
                 {
-                    return ResultWrapper<BlockForRpc>.Fail($"Incorrect head block");
+                    return ResultWrapper<BlockForRpc>.Fail("Incorrect head block");
                 }
 
-                var result = GetBlock(blockParameter);
-                if (result.Result.ResultType == ResultType.Failure)
-                {
-                    if (Logger.IsTrace) Logger.Trace($"eth_getBlockByNumber request {blockParameter}, result: {result.ErrorType}");
-                    return ResultWrapper<BlockForRpc>.Fail(result.Result.Error, result.ErrorType);
-                }
-
-                if (Logger.IsTrace) Logger.Trace($"eth_getBlockByNumber request {blockParameter}, result: {result.Data}");
-                return ResultWrapper<BlockForRpc>.Success(new BlockForRpc(result.Data, returnFullTransactionObjects));
+                var result = GetBlock(blockParameter, true);
+                return result.Result.ResultType == ResultType.Failure
+                    ? ResultWrapper<BlockForRpc>.Fail(result.Result.Error, result.ErrorType)
+                    : ResultWrapper<BlockForRpc>.Success(result.Data == null ? null : new BlockForRpc(result.Data, returnFullTransactionObjects));
             }
             finally
             {
@@ -867,7 +880,7 @@ namespace Nethermind.JsonRpc.Modules.Eth
             return GetAccountStorage(address, index, block.Data.Header.StateRoot);
         }
 
-        private ResultWrapper<Core.Block> GetBlock(BlockParameter blockParameter)
+        private ResultWrapper<Core.Block> GetBlock(BlockParameter blockParameter, bool allowNulls = false)
         {
             switch (blockParameter.Type)
             {
@@ -876,7 +889,6 @@ namespace Nethermind.JsonRpc.Modules.Eth
                     return ResultWrapper<Core.Block>.Success(pending); // TODO: a pending block for sealEngine, work in progress
                 case BlockParameterType.Latest:
                     return ResultWrapper<Core.Block>.Success(_blockchainBridge.RetrieveHeadBlock());
-
                 case BlockParameterType.Earliest:
                     var genesis = _blockchainBridge.RetrieveGenesisBlock();
                     return ResultWrapper<Core.Block>.Success(genesis);
@@ -886,16 +898,16 @@ namespace Nethermind.JsonRpc.Modules.Eth
                         return ResultWrapper<Core.Block>.Fail($"Block id is required for {BlockParameterType.BlockId}", ErrorType.InvalidParams);
                     }
 
+                    Block block = null;
                     var value = blockParameter.BlockId.AsNumber();
-                    if (!value.HasValue)
+                    if (value.HasValue)
                     {
-                        return ResultWrapper<Core.Block>.Fail("Invalid block id", ErrorType.InvalidParams);
+                        block = _blockchainBridge.FindBlock(new UInt256(value.Value));
                     }
 
-                    var block = _blockchainBridge.FindBlock(new UInt256(value.Value));
-                    if (block == null)
+                    if (block == null && !allowNulls)
                     {
-                        return ResultWrapper<Core.Block>.Fail($"Cannot find block for {value.Value}", ErrorType.NotFound);
+                        return ResultWrapper<Core.Block>.Fail($"Cannot find block for {value}", ErrorType.NotFound);
                     }
 
                     return ResultWrapper<Core.Block>.Success(block);

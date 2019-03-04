@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:2.1-aspnetcore-runtime
+FROM microsoft/dotnet:2.2-aspnetcore-runtime
 
 RUN apt-get update && apt-get -y install libsnappy-dev libc6-dev libc6 unzip
 
@@ -7,7 +7,6 @@ COPY ./bin/docker .
 
 ENV ASPNETCORE_ENVIRONMENT docker
 ENV NETHERMIND_CONFIG mainnet
-ENV NETHERMIND_DETACHED_MODE true
 ENV NETHERMIND_INITCONFIG_JSONRPCENABLED false
 ENV NETHERMIND_URL http://*:8345
 

@@ -1,7 +1,8 @@
 language: csharp
 mono: none
-dotnet: 2.1.402
 sudo: required
+dist: xenial
+dotnet: 2.2
 git:
   depth: 3
 before_script:
@@ -15,13 +16,11 @@ after_success:
   - ./scripts/docker-publish.sh
 jobs:
   include:
-    - stage: restore and build
-      script: 
-        - dotnet restore src/Nethermind
-        - dotnet build src/Nethermind
-      name: "Restore and build projects"
-    - script: dotnet build src/Nethermind
-      name: "Build projects"
+    - stage: build
+      script: dotnet build src/Nethermind/Nethermind.sln
+      name: "Build Nethermind"
+    - script: dotnet build src/Nethermind/EthereumTests.sln
+      name: "Build Ethereum tests"
     - stage: run tests
       script: dotnet test src/Nethermind/Ethereum.Basic.Test
       name: "Ethereum.Basic.Test"
@@ -57,8 +56,6 @@ jobs:
       name: "Nethermind.Config.Test"
     - script: dotnet test src/Nethermind/Nethermind.Core.Test
       name: "Nethermind.Core.Test"
-    - script: dotnet test src/Nethermind/Nethermind.DataStreams.Test
-      name: "Nethermind.DataStreams.Test"
     #- script: dotnet test src/Nethermind/Nethermind.Db.Test
     #  name: "Nethermind.Db.Test.Linux"
     #- script: dotnet test src/Nethermind/Nethermind.Db.Test
@@ -81,13 +78,11 @@ jobs:
       - sudo apt-get install libsnappy-dev 
       - dotnet test src/Nethermind/Nethermind.Network.Test
       name: "Nethermind.Network.Test"
-    - script: dotnet test src/Nethermind/Nethermind.Runner.Test
-      name: "Nethermind.Runner.Test"
     - script: dotnet test src/Nethermind/Nethermind.Secp256k1.Test
       name: "Nethermind.Secp256k1.Test.Linux"
-    - script: dotnet test src/Nethermind/Nethermind.Secp256k1.Test
-      name: "Nethermind.Secp256k1.Test.Osx"
-      os: osx
+    #- script: dotnet test src/Nethermind/Nethermind.Secp256k1.Test
+    #  name: "Nethermind.Secp256k1.Test.Osx"
+    #  os: osx
     - script: dotnet test src/Nethermind/Nethermind.Store.Test
       name: "Nethermind.Store.Test"
     - script: dotnet test src/Nethermind/Nethermind.Wallet.Test

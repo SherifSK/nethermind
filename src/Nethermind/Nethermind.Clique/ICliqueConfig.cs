@@ -23,9 +23,5 @@ namespace Nethermind.Clique
         ulong BlockPeriod { get; set; }
 
         ulong Epoch { get; set; }
-        
-        int SignerAccount { get; set; }
-        
-        string SignerPassFile { get; set; }
     }
 }

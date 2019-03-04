@@ -23,6 +23,7 @@ using Nethermind.Core.Crypto;
 using Nethermind.Core.Logging;
 using Nethermind.Core.Test.Builders;
 using Nethermind.Store;
+using Nethermind.Wallet;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -40,19 +41,22 @@ namespace Nethermind.Clique.Test
                 Substitute.For<ITransactionPool>(),
                 Substitute.For<IBlockchainProcessor>(),
                 blockTree,
-                Substitute.For<IStateProvider>(),
                 Substitute.For<ITimestamp>(),
                 Substitute.For<ICryptoRandom>(),
-                new CliqueSealEngine(cliqueConfig, Substitute.For<IEthereumSigner>(), TestObject.PrivateKeyA, new MemDb(), blockTree, NullLogManager.Instance),
+                Substitute.For<IStateProvider>(),
+                Substitute.For<ISnapshotManager>(),
+                new CliqueSealer(new BasicWallet(TestItem.PrivateKeyA), cliqueConfig, Substitute.For<ISnapshotManager>(), TestItem.PrivateKeyA.Address, NullLogManager.Instance),
+                TestItem.AddressA,
                 cliqueConfig,
-                TestObject.AddressA,
                 NullLogManager.Instance);
             
-            CliqueBridge bridge = new CliqueBridge(producer, blockTree);
-            Assert.DoesNotThrow(() => bridge.CastVote(TestObject.AddressB, true));
-            Assert.DoesNotThrow(() => bridge.UncastVote(TestObject.AddressB));
-            Assert.DoesNotThrow(() => bridge.CastVote(TestObject.AddressB, false));
-            Assert.DoesNotThrow(() => bridge.UncastVote(TestObject.AddressB));
+            SnapshotManager snapshotManager = new SnapshotManager(CliqueConfig.Default, new MemDb(), Substitute.For<IBlockTree>(), NullEthereumSigner.Instance, LimboLogs.Instance);
+            
+            CliqueBridge bridge = new CliqueBridge(producer, snapshotManager, blockTree);
+            Assert.DoesNotThrow(() => bridge.CastVote(TestItem.AddressB, true));
+            Assert.DoesNotThrow(() => bridge.UncastVote(TestItem.AddressB));
+            Assert.DoesNotThrow(() => bridge.CastVote(TestItem.AddressB, false));
+            Assert.DoesNotThrow(() => bridge.UncastVote(TestItem.AddressB));
         }
     }
 }
