@@ -112,6 +112,7 @@ namespace Nethermind.Cli
                 .WithFunc<string, string, string>("getCode")
                 .WithFunc<string, string, BigInteger>("getBalance")
                 .WithFunc("sendEth", (string from, string to, decimal amount) => SendEth(new Address(from), new Address(to), amount))
+                .WithFunc<string, BigInteger>("ethStats")
                 .Build();
         }
 
