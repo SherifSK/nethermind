@@ -3,6 +3,37 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Chains", "Chains", "{D75E83BB-6092-45A4-B751-D05D4A6ED995}"
+	ProjectSection(SolutionItems) = preProject
+		Chains\foundation.json = Chains\foundation.json
+		Chains\genesis.json = Chains\genesis.json
+		Chains\goerli.json = Chains\goerli.json
+		Chains\kovan.json = Chains\kovan.json
+		Chains\pre-goerli.json = Chains\pre-goerli.json
+		Chains\pre-goerli_private.json = Chains\pre-goerli_private.json
+		Chains\pre-goerli_private_validator.json = Chains\pre-goerli_private_validator.json
+		Chains\private_bootnode.json = Chains\private_bootnode.json
+		Chains\private_client.json = Chains\private_client.json
+		Chains\private_miner1.json = Chains\private_miner1.json
+		Chains\private_miner2.json = Chains\private_miner2.json
+		Chains\rinkeby.json = Chains\rinkeby.json
+		Chains\ropsten.json = Chains\ropsten.json
+		Chains\spaceneth.json = Chains\spaceneth.json
+		Chains\stureby.json = Chains\stureby.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4019B82F-1104-4D2C-9F96-05FD7D3575E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nethermind", "Nethermind", "{1564814A-27F8-40A3-943E-8E950D5EE17D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{E627BFEF-ABD3-4B8F-A9AC-204251AE440C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Numerics", "Numerics", "{4FD45249-02DC-483E-B76E-100704B3B337}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Benchmarks", "Benchmarks", "{AE494DDC-4577-46C6-8AC1-4F6254FDA31D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RocksDbSharp", "RocksDbSharp", "{499A7CDB-1708-4460-A6B5-9A2B9AC50FAE}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Core", "Nethermind.Core\Nethermind.Core.csproj", "{5751C57B-9F2D-45DE-BCC2-42645B85E39E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.HashLib", "Nethermind.HashLib\Nethermind.HashLib.csproj", "{75B8BE8D-18B0-493C-8BA5-083D4B952BF9}"
@@ -47,25 +78,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Runner.TestClien
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Blockchain.Test", "Nethermind.Blockchain.Test\Nethermind.Blockchain.Test.csproj", "{E6C8C319-1BA8-437D-961D-1357FF5A9699}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Chains", "Chains", "{D75E83BB-6092-45A4-B751-D05D4A6ED995}"
-	ProjectSection(SolutionItems) = preProject
-		Chains\foundation.json = Chains\foundation.json
-		Chains\genesis.json = Chains\genesis.json
-		Chains\goerli.json = Chains\goerli.json
-		Chains\kovan.json = Chains\kovan.json
-		Chains\pre-goerli.json = Chains\pre-goerli.json
-		Chains\pre-goerli_private.json = Chains\pre-goerli_private.json
-		Chains\pre-goerli_private_validator.json = Chains\pre-goerli_private_validator.json
-		Chains\private_bootnode.json = Chains\private_bootnode.json
-		Chains\private_client.json = Chains\private_client.json
-		Chains\private_miner1.json = Chains\private_miner1.json
-		Chains\private_miner2.json = Chains\private_miner2.json
-		Chains\rinkeby.json = Chains\rinkeby.json
-		Chains\ropsten.json = Chains\ropsten.json
-		Chains\spaceneth.json = Chains\spaceneth.json
-		Chains\stureby.json = Chains\stureby.json
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.DiagTools", "Nethermind.DiagTools\Nethermind.DiagTools.csproj", "{B8F7A931-EF2F-4107-8F9B-6C66053A8833}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Store.Test", "Nethermind.Store.Test\Nethermind.Store.Test.csproj", "{0A927E80-884F-4F41-BC5E-1825D32726DB}"
@@ -74,23 +86,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Config", "Nether
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Config.Test", "Nethermind.Config.Test\Nethermind.Config.Test.csproj", "{318B0825-0389-4A00-9448-551CA3AF7E45}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4019B82F-1104-4D2C-9F96-05FD7D3575E8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nethermind", "Nethermind", "{1564814A-27F8-40A3-943E-8E950D5EE17D}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{E627BFEF-ABD3-4B8F-A9AC-204251AE440C}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Numerics", "Numerics", "{4FD45249-02DC-483E-B76E-100704B3B337}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Dirichlet.Numerics", "..\Dirichlet\Nethermind.Dirichlet.Numerics\Nethermind.Dirichlet.Numerics.csproj", "{F582324E-2820-4284-B991-CADFCD835632}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Benchmarks", "Benchmarks", "{AE494DDC-4577-46C6-8AC1-4F6254FDA31D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Benchmarks", "Nethermind.Benchmarks\Nethermind.Benchmarks.csproj", "{E74D4CB5-1F66-4224-A775-494F05C35816}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nethermind.Stats", "Nethermind.Stats\Nethermind.Stats.csproj", "{9BEFCE4E-8814-42F4-B405-16195F9E1244}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RocksDbSharp", "RocksDbSharp", "{499A7CDB-1708-4460-A6B5-9A2B9AC50FAE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RocksDbSharp", "..\rocksdb-sharp\RocksDbSharp\RocksDbSharp.csproj", "{294F2DF2-1F01-4478-A613-EF911C21DD2E}"
 EndProject
@@ -327,6 +327,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{1564814A-27F8-40A3-943E-8E950D5EE17D} = {4019B82F-1104-4D2C-9F96-05FD7D3575E8}
 		{6BAD851C-B0A2-4DFE-A1F3-1C3A634C522B} = {1564814A-27F8-40A3-943E-8E950D5EE17D}
 		{99176509-944E-4330-BCC0-B286A9E585E6} = {1564814A-27F8-40A3-943E-8E950D5EE17D}
 		{44B0C68E-E3F0-4CAE-8C7C-4A3EAB62E7DD} = {1564814A-27F8-40A3-943E-8E950D5EE17D}
@@ -340,7 +341,6 @@ Global
 		{B8F7A931-EF2F-4107-8F9B-6C66053A8833} = {E627BFEF-ABD3-4B8F-A9AC-204251AE440C}
 		{0A927E80-884F-4F41-BC5E-1825D32726DB} = {1564814A-27F8-40A3-943E-8E950D5EE17D}
 		{318B0825-0389-4A00-9448-551CA3AF7E45} = {1564814A-27F8-40A3-943E-8E950D5EE17D}
-		{1564814A-27F8-40A3-943E-8E950D5EE17D} = {4019B82F-1104-4D2C-9F96-05FD7D3575E8}
 		{F582324E-2820-4284-B991-CADFCD835632} = {4FD45249-02DC-483E-B76E-100704B3B337}
 		{E74D4CB5-1F66-4224-A775-494F05C35816} = {AE494DDC-4577-46C6-8AC1-4F6254FDA31D}
 		{294F2DF2-1F01-4478-A613-EF911C21DD2E} = {499A7CDB-1708-4460-A6B5-9A2B9AC50FAE}

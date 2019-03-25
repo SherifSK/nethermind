@@ -1,21 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp2.2</TargetFramework>
-        <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
-    </PropertyGroup>
-    
-    <ItemGroup>
-      <PackageReference Include="Jint" Version="2.11.58" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="handlebars-v4.0.12.js" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Nethermind.JsonRpc.Client\Nethermind.JsonRpc.Client.csproj" />
-    </ItemGroup>
-
+﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+    <FileUpgradeFlags>40</FileUpgradeFlags>
+    <UpgradeBackupLocation>E:\nethermind\src\Nethermind\Backup\Nethermind.Cli\</UpgradeBackupLocation>
+    <OldToolsVersion>2.0</OldToolsVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Jint" Version="2.11.58" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="handlebars-v4.0.12.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nethermind.JsonRpc.Client\Nethermind.JsonRpc.Client.csproj" />
+  </ItemGroup>
 </Project>

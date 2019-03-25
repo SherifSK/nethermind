@@ -1,18 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
+<ItemGroup>
+    <ProjectReference Include="..\..\Dirichlet\Nethermind.Dirichlet.Numerics\Nethermind.Dirichlet.Numerics.csproj" />
     <ProjectReference Include="..\Nethermind.JsonRpc.Client\Nethermind.JsonRpc.Client.csproj" />
+    <ProjectReference Include="..\Nethermind.JsonRpc\Nethermind.JsonRpc.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System.ServiceProcess">
-      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.ServiceProcess.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
+  
 </Project>

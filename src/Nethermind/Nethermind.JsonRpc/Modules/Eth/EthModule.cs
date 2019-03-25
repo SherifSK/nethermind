@@ -158,18 +158,6 @@ namespace Nethermind.JsonRpc.Modules.Eth
             }
         }
 
-        public ResultWrapper<bool?> eth_ethStats(string address)
-        {
-            try
-            {
-                return ResultWrapper<bool?>.Success(true);
-            }
-            finally
-            {
-                _readerWriterLockSlim.ExitReadLock();
-            }
-        }
-
         public ResultWrapper<BigInteger?> eth_getBalance(Address address, BlockParameter blockParameter)
         {
             try
@@ -971,11 +959,6 @@ namespace Nethermind.JsonRpc.Modules.Eth
 
             var code = _blockchainBridge.GetCode(account.CodeHash);
             return ResultWrapper<byte[]>.Success(code);
-        }
-
-        ResultWrapper<bool?> IEthModule.eth_ethStats(string address)
-        {
-            throw new NotImplementedException();
         }
     }
 }

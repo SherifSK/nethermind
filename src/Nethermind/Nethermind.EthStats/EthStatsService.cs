@@ -1,8 +1,8 @@
 ﻿using System;
 
-using Nethermind.JsonRpc.Client;
 using Nethermind.Core;
 using Nethermind.Core.Logging;
+using Nethermind.JsonRpc.Client;
 
 namespace Nethermind.EthStats
 {
