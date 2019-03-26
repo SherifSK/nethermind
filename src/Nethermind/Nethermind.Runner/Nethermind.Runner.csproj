@@ -46,6 +46,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <None Remove="configs\ethstats.cfg" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Update="NLog.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

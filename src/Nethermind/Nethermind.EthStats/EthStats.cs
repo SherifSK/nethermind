@@ -16,8 +16,12 @@
  * along with the Nethermind. If not, see <http://www.gnu.org/licenses/>.
  */
 
- using System;
- using Nethermind.Dirichlet.Numerics;
+using System;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.Configuration.EnvironmentVariables;
+using Nethermind.Dirichlet.Numerics;
+
 
 namespace Nethermind.EthStats
 {
@@ -29,11 +33,51 @@ namespace Nethermind.EthStats
 	    public static string API_VERSION;
 	    public static string COINBASE;
 
-        public EthStats()
+        public static string INSTANCE_NAME;
+        public static string WS_SECRET;
+
+        public static bool PENDING_WORKS;
+        public static int MAX_BLOCKS_HISTORY;
+        public static int UPDATE_INTERVAL;
+        public static int PING_INTERVAL;
+        public static int MINERS_LIMIT;
+        public static int MAX_HISTORY_UPDATE;
+        public static int MAX_CONNECTION_ATTEMPTS;
+        public static int CONNECTION_ATTEMPTS_TIMEOUT;
+
+        private readonly string _configurationFilePath;
+        private readonly string _sectionNameSuffix;
+
+        public EthStats(string configurationFilePath, string sectionNameSuffix = "Settings")
         {
+            _configurationFilePath = configurationFilePath;
+            _sectionNameSuffix = sectionNameSuffix;
+
+            //values according to eth-net-intelligence-api - to be discussed later
+            PENDING_WORKS = true;
+            MAX_BLOCKS_HISTORY = 40;
+            UPDATE_INTERVAL = 5000;
+            PING_INTERVAL = 3000;
+            MINERS_LIMIT = 5;
+            MAX_HISTORY_UPDATE = 50;
+            MAX_CONNECTION_ATTEMPTS = 50;
+            CONNECTION_ATTEMPTS_TIMEOUT = 1000;
             this.Info = new EthStatsInfo();
             this.Stats = new EthStatsStats();
         }
+
+        public void LoadConfig(Type type)
+        {
+            var configurationBuilder = new ConfigurationBuilder()
+                .AddJsonFile("process.json")
+                .AddEnvironmentVariables();
+
+            IConfiguration config = configurationBuilder.Build();
+
+            //Doesn't work...null all the time
+            //var test = Configuration.Get("Data:TargetFolderLocations");
+        }
+
 
         public EthStatsInfo Info { get; }
         public EthStatsStats Stats { get; }
