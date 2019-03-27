@@ -21,12 +21,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Nethermind.Dirichlet.Numerics;
-
+using Newtonsoft.Json;
 
 namespace Nethermind.EthStats
 {
     class EthStats
     {
+        private static IConfiguration _config;
+
         public static string ETH_VERSION;
         public static string NET_VERSION;
 	    public static string PROTOCOL_VERSION;
@@ -53,6 +55,29 @@ namespace Nethermind.EthStats
             _configurationFilePath = configurationFilePath;
             _sectionNameSuffix = sectionNameSuffix;
 
+            this.Info = new EthStatsInfo();
+            this.Stats = new EthStatsStats();
+
+            LoadConfig();
+            Init();
+        }
+
+        public void LoadConfig(/*Type type*/)
+        {
+            var configurationBuilder = new ConfigurationBuilder()
+                .AddJsonFile("process.json")
+                .AddEnvironmentVariables();
+
+            _config = configurationBuilder.Build();
+        }
+
+        public void Init()
+        {
+            IConfigurationSection sectionEnv = _config.GetSection("env");
+
+            INSTANCE_NAME = sectionEnv.GetValue(typeof(string), "INSTANCE_NAME") as string;
+            WS_SECRET = sectionEnv.GetValue(typeof(string), "WS_SECRET") as string;
+
             //values according to eth-net-intelligence-api - to be discussed later
             PENDING_WORKS = true;
             MAX_BLOCKS_HISTORY = 40;
@@ -62,54 +87,58 @@ namespace Nethermind.EthStats
             MAX_HISTORY_UPDATE = 50;
             MAX_CONNECTION_ATTEMPTS = 50;
             CONNECTION_ATTEMPTS_TIMEOUT = 1000;
-            this.Info = new EthStatsInfo();
-            this.Stats = new EthStatsStats();
+
+            string nodeEnv = sectionEnv.GetValue(typeof(string), "NODE_ENV") as string;
+            if (INSTANCE_NAME == "" && nodeEnv.Equals("production"))
+            {
+                Console.WriteLine("No instance name specified!");
+                Environment.Exit(0);
+            }
+
+            this.Info.Name = INSTANCE_NAME;
+            this.Info.Contact = sectionEnv.GetValue(typeof(string), "CONTACT_DETAILS") as string;
+            this.Info.Port = ((int)sectionEnv.GetValue(typeof(int), "CONTACT_DETAILS")) == 0 ? 
+                ((int)sectionEnv.GetValue(typeof(int), "CONTACT_DETAILS")) : 30303;
+            OperatingSystem os_info = System.Environment.OSVersion;
+            this.Info.Os = os_info.Platform.ToString();
+            this.Info.Os_v = os_info.Version.ToString();
+            //client: pjson.version,
+
+            this.LastStats = JsonConvert.SerializeObject(this.Stats);
         }
 
-        public void LoadConfig(Type type)
-        {
-            var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile("process.json")
-                .AddEnvironmentVariables();
 
-            IConfiguration config = configurationBuilder.Build();
+        public EthStatsInfo Info { get; set; }
+        public EthStatsStats Stats { get; set; }
+        public string Id { get; set; }
 
-            //Doesn't work...null all the time
-            //var test = Configuration.Get("Data:TargetFolderLocations");
-        }
+        public UInt256 LastBlock { get; set; }
+	    public string LastStats { get; set; }
+	    public UInt256 LastFetch { get; set; }
+	    public UInt256 LastPending { get; set; }
+        public UInt256 Tries { get; set; }
+	    public UInt256 Down { get; set; }
+	    public UInt256 LastSent { get; set; }
+	    public UInt256 Latency { get; set; }
 
+	    public bool Web3 { get; set; }
+	    public bool Socket { get; set; }
 
-        public EthStatsInfo Info { get; }
-        public EthStatsStats Stats { get; }
-        public string Id { get; }
+	    public string LatestQueue { get; set; }
+	    public bool PendingFilter { get; set; }
+	    public bool ChainFilter { get; set; }
+	    public bool UpdateInterval { get; set; }
+	    public bool PingInterval { get; set; }
+	    public bool ConnectionInterval { get; set; }
 
-        public UInt256 LastBlock { get; }
-	    public string LastStats { get; }
-	    public UInt256 LastFetch { get; }
-	    public UInt256 LastPending { get; }
-        public UInt256 Tries { get; }
-	    public UInt256 Down { get; }
-	    public UInt256 LastSent { get; }
-	    public UInt256 Latency { get; }
-
-	    public bool Web3 { get; }
-	    public bool Socket { get; }
-
-	    public string LatestQueue { get; }
-	    public bool PendingFilter { get; }
-	    public bool ChainFilter { get; }
-	    public bool UpdateInterval { get; }
-	    public bool PingInterval { get; }
-	    public bool ConnectionInterval { get; }
-
-	    public UInt256 LastBlockSentAt { get; }
-	    public UInt256 LastChainLog { get; }
-	    public UInt256 LastPendingLog { get; }
-	    public UInt256 ChainDebouncer { get; }
-	    public UInt256 Chan_Min_Time { get; }
-	    public UInt256 Max_Chain_Debouncer { get; }
-	    public UInt256 Chain_Debouncer_Cnt { get; }
-	    public UInt256 Connection_Attempts { get; }
-	    public UInt256 TimeOffset { get; }
+	    public UInt256 LastBlockSentAt { get; set; }
+	    public UInt256 LastChainLog { get; set; }
+	    public UInt256 LastPendingLog { get; set; }
+	    public UInt256 ChainDebouncer { get; set; }
+	    public UInt256 Chan_Min_Time { get; set; }
+	    public UInt256 Max_Chain_Debouncer { get; set; }
+	    public UInt256 Chain_Debouncer_Cnt { get; set; }
+	    public UInt256 Connection_Attempts { get; set; }
+	    public UInt256 TimeOffset { get; set; }
     }
 }

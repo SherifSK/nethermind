@@ -28,17 +28,17 @@ namespace Nethermind.EthStats
 
         }
 
-        public string Name { get; }
-        public string Contact { get; }
-        public string Coinbase { get; }
-        public string Node { get; }
-        public string Net { get; }
-        public string Protocol { get; }
-        public string Api { get; }
-        public int Port { get; }
-        public string Os { get; }
-        public string Os_v { get; }
-        public string Client { get; }
-        public bool CanUpdateHistory { get; }
+        public string Name { get; set; }
+        public string Contact { get; set; }
+        public string Coinbase { get; set; }
+        public string Node { get; set; }
+        public string Net { get; set; }
+        public string Protocol { get; set; }
+        public string Api { get; set; }
+        public int Port { get; set; }
+        public string Os { get; set; }
+        public string Os_v { get; set; }
+        public string Client { get; set; }
+        public bool CanUpdateHistory { get; set; }
     }
 }

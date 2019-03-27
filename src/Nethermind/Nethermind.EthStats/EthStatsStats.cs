@@ -27,7 +27,9 @@ namespace Nethermind.EthStats
 
         public EthStatsStats()
         {
-
+            this.Active = false;
+            this.Mining = false;
+            this.Syncing = false;
         }
 
         public bool Active { get; }
