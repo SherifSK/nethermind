@@ -21,13 +21,23 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Nethermind.Dirichlet.Numerics;
+using Nethermind.JsonRpc.Client;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
+using Nethermind.Core.Json;
+using Nethermind.Core.Logging;
+using Nethermind.Runner.TestClient;
+using Nethermind.JsonRpc.Modules.Eth;
+using Nethermind.Core;
+using Nethermind.Facade;
+using Nethermind.Blockchain.TransactionPools;
+using Nethermind.Runner.Runners;
 
 namespace Nethermind.EthStats
 {
     class EthStats
     {
-        private static IConfiguration _config;
+        private readonly EthModule _ethModule;
 
         public static string ETH_VERSION;
         public static string NET_VERSION;
@@ -50,13 +60,15 @@ namespace Nethermind.EthStats
         private readonly string _configurationFilePath;
         private readonly string _sectionNameSuffix;
 
-        public EthStats(string configurationFilePath, string sectionNameSuffix = "Settings")
+        public EthStats(string configurationFilePath, EthModule ethModule, string sectionNameSuffix = "Settings")
         {
             _configurationFilePath = configurationFilePath;
             _sectionNameSuffix = sectionNameSuffix;
 
             this.Info = new EthStatsInfo();
             this.Stats = new EthStatsStats();
+
+            _ethModule = ethModule;
 
             LoadConfig();
             Init();
@@ -105,8 +117,20 @@ namespace Nethermind.EthStats
             //client: pjson.version,
 
             this.LastStats = JsonConvert.SerializeObject(this.Stats);
+
+            //StartWeb3Connection();
         }
 
+        /*private void StartWeb3Connection(IWeb3Module web3)
+        {
+
+        }*/
+
+        private void GetInfo()
+        {
+            this.Info.Coinbase = _ethModule.eth_coinbase().ToString();
+            this.Info.Os = _ethModule.
+        }
 
         public EthStatsInfo Info { get; set; }
         public EthStatsStats Stats { get; set; }
@@ -140,5 +164,20 @@ namespace Nethermind.EthStats
 	    public UInt256 Chain_Debouncer_Cnt { get; set; }
 	    public UInt256 Connection_Attempts { get; set; }
 	    public UInt256 TimeOffset { get; set; }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        async Task RunClient(string[] args)
+        {
+            Console.WriteLine("Welcome in Runner Test Client");
+            IJsonRpcClient ethStatService = new BasicJsonRpcClient(KnownRpcUris.Localhost, new EthereumJsonSerializer(), NullLogManager.Instance);
+            var client = new RunnerTestClientApp(ethStatService);
+            await client.Run();
+            //Console.WriteLine("Exiting Runner Test Client");
+        }
     }
 }
